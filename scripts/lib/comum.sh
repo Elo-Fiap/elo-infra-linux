@@ -146,12 +146,46 @@ esperar() {
   ok "$descricao (em $((SECONDS - inicio))s)"
 }
 
+# apt_com_espera "descrição" comando do apt...
+# Igual ao executar, mas se outro processo estiver usando o apt (o Ubuntu costuma se atualizar sozinho logo
+# depois de ligar), espera e tenta de novo por até 10 minutos em vez de parar.
+# O comando roda com LC_ALL=C para a mensagem de trava vir sempre em inglês.
+apt_com_espera() {
+  local descricao="$1" codigo saida inicio=$SECONDS avisou="nao"
+  shift
+  saida="$(mktemp)"
+  while :; do
+    codigo=0
+    printf '%s [%s] $ %s\n' "$(agora)" "$SCRIPT_ATUAL" "$*" >>"$LOG_EXECUCAO"
+    env LC_ALL=C DEBIAN_FRONTEND=noninteractive "$@" >"$saida" 2>&1 || codigo=$?
+    cat "$saida" >>"$LOG_EXECUCAO"
+    if ((codigo == 0)); then
+      rm -f "$saida"
+      ok "$descricao"
+      return 0
+    fi
+    if ((SECONDS - inicio < 600)) && grep -qiE 'could not get lock|unable to (acquire|lock)|held by process' "$saida"; then
+      if [[ $avisou == nao ]]; then
+        info "outro processo está usando o apt (o Ubuntu se atualizando sozinho); esperando ele terminar"
+        avisou="sim"
+      fi
+      sleep 10
+      continue
+    fi
+    log "   ERRO (código $codigo): $descricao"
+    tail -n 12 "$saida" | sed 's/^/      | /'
+    rm -f "$saida"
+    auditar erro "$descricao (código $codigo)"
+    exit "$codigo"
+  done
+}
+
 atualizar_indice() {
   local marca=/run/elo-apt-atualizado # some no reinício da máquina
   if [[ -n "$(find "$marca" -mmin -60 2>/dev/null)" ]]; then
     return 0
   fi
-  executar "atualizar a lista de pacotes (apt-get update)" apt-get update
+  apt_com_espera "atualizar a lista de pacotes (apt-get update)" apt-get -o DPkg::Lock::Timeout=60 update
   touch "$marca"
 }
 
@@ -166,8 +200,8 @@ instalar() {
     return 0
   fi
   atualizar_indice
-  executar "instalar pacotes: ${faltam[*]}" \
-    env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${faltam[@]}"
+  apt_com_espera "instalar pacotes: ${faltam[*]}" \
+    apt-get -o DPkg::Lock::Timeout=60 install -y --no-install-recommends "${faltam[@]}"
   auditar pacotes "instalados: ${faltam[*]}"
 }
 

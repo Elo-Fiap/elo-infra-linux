@@ -70,7 +70,8 @@ sudo bash provisionar.sh
 ```
 
 A primeira execução leva alguns minutos, quase todos na compilação da API. Rodar de novo é rápido: cada
-etapa só muda o que estiver diferente. Cada etapa também roda sozinha:
+etapa só muda o que estiver diferente. Se o Ubuntu estiver atualizando pacotes sozinho na hora, os scripts
+esperam o apt ficar livre (até 10 minutos) em vez de parar. Cada etapa também roda sozinha:
 
 | Comando | O que faz |
 | --- | --- |
