@@ -1,0 +1,2 @@
+Saídas do scripts/verificar.sh e do scripts/teste-de-falha.sh, gravadas na VM.
+Cada execução cria um arquivo novo com a data no nome.

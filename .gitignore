@@ -1,0 +1,2 @@
+# Ajustes locais de uma VM (sobrepõem o config/elo.conf)
+config/elo.local.conf

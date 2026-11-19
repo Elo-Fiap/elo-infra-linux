@@ -1,0 +1,6 @@
+# Os scripts rodam no Linux: fim de linha sempre LF, mesmo se o repositório for baixado no Windows.
+* text=auto eol=lf
+*.sh text eol=lf
+*.tpl text eol=lf
+*.conf text eol=lf
+*.png binary
